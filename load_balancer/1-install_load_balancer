@@ -21,8 +21,8 @@ frontend MHiirwa-frontend
 
 backend MHiirwa-backend
     balance roundrobin
-    server 6877-web-01 54.208.204.254 check
-    server 6877-web-02 54.167.38.96 check
+    server 6880-web-01 54.208.204.254 check
+    server 6880-web-02 54.167.38.96 check
 EOF
 
 # Restart HAProxy service
