@@ -1,40 +1,26 @@
 #!/usr/bin/env bash
-# Install and configure HAProxy to load balance web-01 and web-02 on lb-01
+# Install and configure HAProxy on lb-01 to load balance between web-01 and web-02
 
+# Exit if any command fails
 set -e
 
-install_haproxy() {
-    apt-get -y update
-    apt-get -y install haproxy
-    # Enable HAProxy via init script
-    sed -i 's/ENABLED=0/ENABLED=1/' /etc/default/haproxy
-}
+# Ensure script is run as root
+if [ "$EUID" -ne 0 ]; then
+  echo "Please run as root"
+  exit 1
+fi
 
-configure_haproxy() {
-    # Overwrite configuration (not append)
-    cat > /etc/haproxy/haproxy.cfg <<EOF
-frontend lb-frontend
-    bind *:80
-    mode http
-    default_backend web-backend
+# Update and install HAProxy
+apt-get update -y
+apt-get install -y haproxy
 
-backend web-backend
-    balance roundrobin
-    server web-01 54.208.204.254 check
-    server web-02 54.167.38.96 check
-EOF
-}
+# Enable HAProxy to start using init script
+sed -i 's/ENABLED=0/ENABLED=1/' /etc/default/haproxy
 
-restart_haproxy() {
-    service haproxy restart
-}
+# Backup original configuration if not already done
+if [ ! -f /etc/haproxy/haproxy.cfg.bak ]; then
+  cp /etc/haproxy/haproxy.cfg /etc/haproxy/haproxy.cfg.bak
+fi
 
-main() {
-    install_haproxy
-    configure_haproxy
-    restart_haproxy
-    echo "HAProxy installed and configured: web-01 and web-02"
-}
-
-main
+# Write new HAProxy
 
