@@ -1,29 +1,44 @@
 #!/usr/bin/env bash
-# Install and configure HAProxy on lb-01 server to load balance between web-01 and web-02
+# Install and configure HAProxy on lb-01 server to load balance traffic between web-01 and web-02
 
-# Update system and install HAProxy
-apt-get -y update
-apt-get -y install haproxy
+set -e
 
-# Enable HAProxy to be started by init script
-sed -i 's/ENABLED=0/ENABLED=1/' /etc/default/haproxy
+# Function to install HAProxy
+install_haproxy() {
+    apt-get -y update
+    apt-get -y install haproxy
+    # Enable HAProxy to start via init script
+    sed -i 's/ENABLED=0/ENABLED=1/' /etc/default/haproxy
+}
 
-# Backup the original haproxy.cfg
-cp /etc/haproxy/haproxy.cfg /etc/haproxy/haproxy.cfg.bak
+# Function to configure HAProxy
+configure_haproxy() {
+    # Backup existing configuration
+    cp /etc/haproxy/haproxy.cfg /etc/haproxy/haproxy.cfg.bak
 
-# Configure HAProxy with frontend and backend
-cat >> /etc/haproxy/haproxy.cfg <<EOF
-
-frontend MHiirwa-frontend
+    # Write new configuration
+    cat > /etc/haproxy/haproxy.cfg <<EOF
+frontend lb-frontend
     bind *:80
     mode http
-    default_backend MHiirwa-backend
+    default_backend web-backend
 
-backend MHiirwa-backend
+backend web-backend
     balance roundrobin
-    server 6880-web-01 54.208.204.254 check
-    server 6880-web-02 54.167.38.96 check
+    server web-01 54.208.204.254 check
+    server web-02 54.167.38.96 check
 EOF
+}
 
-# Restart HAProxy service
-service haproxy restart
+# Function to restart HAProxy without using systemctl
+restart_haproxy() {
+    service haproxy restart
+}
+
+# Main execution
+install_haproxy
+configure_haproxy
+restart_haproxy
+
+echo "HAProxy installed and configured with web-01 and web-02 successfully"
+
